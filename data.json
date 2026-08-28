@@ -1,0 +1,59 @@
+{
+  "farmers": [],
+  "bookings": [],
+  "prices": [],
+  "centres": [
+    "Mandapeta Procurement Centre",
+    "Rajahmundry Procurement Centre",
+    "Amalapuram Procurement Centre"
+  ],
+  "crops": [
+    "Rice",
+    "Wheat",
+    "Maize",
+    "Groundnut",
+    "Cotton",
+    "Other"
+  ],
+  "audit": [
+    {
+      "id": "AUD-1787891278115",
+      "time": "2026-08-28T04:27:58.115Z",
+      "action": "ADMIN_LOGOUT",
+      "details": "Administrator logged out"
+    },
+    {
+      "id": "AUD-1787890625875",
+      "time": "2026-08-28T04:17:05.875Z",
+      "action": "ADMIN_LOGIN",
+      "details": "Administrator logged in"
+    },
+    {
+      "id": "AUD-1787890536501",
+      "time": "2026-08-28T04:15:36.501Z",
+      "action": "ADMIN_LOGOUT",
+      "details": "Administrator logged out"
+    },
+    {
+      "id": "AUD-1787890383453",
+      "time": "2026-08-28T04:13:03.453Z",
+      "action": "ADMIN_LOGIN",
+      "details": "Administrator logged in"
+    },
+    {
+      "id": "AUD-1787890356069",
+      "time": "2026-08-28T04:12:36.072Z",
+      "action": "ADMIN_SETUP",
+      "details": "Initial administrator account created"
+    }
+  ],
+  "admin": {
+    "email": "naveenkumarkummara6@gmail.com",
+    "salt": "238cf0c63f0e67a2c653d16276562644",
+    "hash": "df1a364b8d686849b38c423cb1f50ba1e4726bbd1265c5596899d0bef54caa03605cf8a3c44a7772a8289fdc4446de6a7f52fbabda4b7eeb79c7ec79a2107bf0"
+  },
+  "settings": {
+    "upiId": "",
+    "payeeName": "CropSync"
+  }
+}
