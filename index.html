@@ -83,7 +83,59 @@ header, .navbar, nav{
   .hero h1{font-size:34px !important}
 }
 
+
+/* ===== CropSync Floating Premium Title ===== */
+.cs-floating-title-wrap{
+  position:relative;
+  height:64px;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(245,250,245,.92));
+  border-bottom:1px solid var(--line);
+  box-shadow:0 6px 22px rgba(7,59,37,.08);
+  z-index:6;
+}
+.cs-floating-title{
+  position:absolute;
+  left:0;
+  top:50%;
+  transform:translate3d(-120%, -50%, 0);
+  white-space:nowrap;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:8px 20px;
+  border:1px solid rgba(22,116,71,.14);
+  border-radius:999px;
+  background:rgba(255,255,255,.86);
+  box-shadow:0 10px 28px rgba(7,59,37,.10);
+  color:var(--deep);
+  font-size:clamp(20px,3vw,30px);
+  font-weight:950;
+  letter-spacing:-.03em;
+  animation:csFloatAcross 9s cubic-bezier(.45,0,.55,1) infinite alternate;
+  will-change:transform;
+}
+.cs-floating-title .cs-grain{filter:drop-shadow(0 4px 7px rgba(244,185,66,.28));}
+.cs-floating-title .cs-sub{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800;}
+@keyframes csFloatAcross{
+  0%{transform:translate3d(-120%,-50%,0) rotate(-1deg);}
+  45%{transform:translate3d(42vw,-50%,0) rotate(0deg);}
+  100%{transform:translate3d(calc(100vw - 100%),-50%,0) rotate(1deg);}
+}
+@media (prefers-reduced-motion:reduce){
+  .cs-floating-title{animation:none;left:50%;transform:translate(-50%,-50%);}
+}
+@media(max-width:650px){
+  .cs-floating-title-wrap{height:56px;}
+  .cs-floating-title{font-size:21px;padding:7px 15px;}
+  .cs-floating-title .cs-sub{display:none;}
+}
 </style></head><body>
+<div class="cs-floating-title-wrap" aria-label="CropSync animated title">
+  <div class="cs-floating-title"><span class="cs-grain">🌾</span><span>CropSync</span><span class="cs-sub">Smart Farmer Procurement</span></div>
+</div>
 <header class="top"><div class="brand">🌾 CropSync<small>Secure Farmer Procurement Management</small></div><div class="state"><span class="dot" id="dot"></span><span id="state">Farmer/Public Mode</span><button class="btn light" id="adminBtn">🔐 Admin</button><button class="btn light hidden" id="logoutBtn">Logout</button></div></header>
 <nav id="nav"><button class="active" data-v="home">Dashboard</button><button data-v="register">Farmer Registration</button><button data-v="booking">Slot Booking</button><button data-v="bookings">My Bookings</button><button data-v="queue">Live Queue</button><button data-v="tracking">Tracking</button><button data-v="payment">💳 Payment</button><button class="hidden" id="adminNav" data-v="admin">🔒 Central Admin</button></nav>
 <main>
