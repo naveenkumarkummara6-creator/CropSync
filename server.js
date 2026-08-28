@@ -1,6 +1,5 @@
 const http=require('http'),fs=require('fs'),path=require('path'),crypto=require('crypto');
-const PORT=process.env.PORT||3000, ROOT=__dirname, PUBLIC=path.join(ROOT,'public'), DB=path.join(ROOT,'data.json');
-const sessions=new Map(), attempts=new Map(), otps=new Map();
+const PORT=process.env.PORT||3000, ROOT=__dirname, PUBLIC=ROOT, DB=path.join(ROOT,'data.json');const sessions=new Map(), attempts=new Map(), otps=new Map();
 const seed={farmers:[],bookings:[],prices:[],centres:["Mandapeta Procurement Centre","Rajahmundry Procurement Centre","Amalapuram Procurement Centre"],crops:["Rice","Wheat","Maize","Groundnut","Cotton","Other"],audit:[],admin:null,settings:{upiId:"",payeeName:"CropSync"}};
 function load(){try{return JSON.parse(fs.readFileSync(DB,'utf8'))}catch{save(seed);return structuredClone(seed)}} function save(d){fs.writeFileSync(DB,JSON.stringify(d,null,2))} let db=load();
 function json(res,code,obj){res.writeHead(code,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(obj))}
