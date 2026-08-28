@@ -47,7 +47,11 @@
       "details": "Initial administrator account created"
     }
   ],
-  "admin": null,
+  "admin": {
+  "email": "...",
+  "salt": "...",
+  "hash": "..."
+},
   "settings": {
     "upiId": "",
     "payeeName": "CropSync"
