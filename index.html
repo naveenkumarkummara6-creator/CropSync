@@ -1,10 +1,93 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CropSync — Secure Procurement</title><style>
-:root{--g:#176b3a;--g2:#e7f4ec;--bg:#f4f8f5;--text:#173126;--muted:#66756d;--border:#d9e4dd;--red:#b42318;--blue:#175cd3}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px Segoe UI,Arial,sans-serif}.top{background:#103d27;color:white;padding:16px 5%;display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{font-size:23px;font-weight:900}.brand small{display:block;font-size:11px;font-weight:500;opacity:.8}.state{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dot{width:9px;height:9px;border-radius:50%;background:#f4b400}.dot.on{background:#35d07f}nav{display:flex;gap:5px;flex-wrap:wrap;padding:10px 5%;background:white;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:4}nav button,.btn{border:0;border-radius:9px;padding:10px 14px;font-weight:800;cursor:pointer}nav button{background:transparent;color:var(--text)}nav button.active,nav button:hover{background:var(--g2);color:var(--g)}main{max-width:1250px;margin:auto;padding:28px 5% 60px}.view{display:none}.view.active{display:block}.hero,.card{background:white;border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 8px 28px rgba(23,49,38,.07);margin-bottom:16px}.hero{background:linear-gradient(135deg,#dff2e6,#fff)}h1{font-size:40px;margin:8px 0}h2{margin-top:0}.muted{color:var(--muted)}.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.stat{font-size:30px;font-weight:900}.kicker{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--g);font-weight:900}.form{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}.full{grid-column:1/-1}.field{display:flex;flex-direction:column;gap:6px}label{font-size:13px;font-weight:800}input,select{padding:11px;border:1px solid #cbd8d0;border-radius:9px;background:white;color:var(--text)}button.primary{background:var(--g);color:white}.secondary{background:var(--g2);color:var(--g)}.light{background:white;border:1px solid var(--border)}.danger{background:#fee4e2;color:var(--red)}.blue{background:#eaf2ff;color:var(--blue)}.notice{padding:12px 14px;border-radius:10px;margin:10px 0;border:1px solid}.info{background:#edf5ff;border-color:#bfd6f8;color:#174a86}.success{background:#eaf8ef;border-color:#b8e0c3;color:#176b3a}.error{background:#fff0ef;border-color:#f0b8b3;color:#8e2018}.warn{background:#fff8df;border-color:#ead38a;color:#765600}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.table{overflow:auto}.table table{width:100%;border-collapse:collapse}.table th,.table td{text-align:left;padding:10px;border-bottom:1px solid var(--border);font-size:13px}.table th{background:#f5f8f6}.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:900;background:#fef3c7;color:#92400e}.green{background:#dcfce7;color:#166534}.red{background:#fee2e2;color:#991b1b}.modal{display:none;position:fixed;inset:0;background:#04120bad;z-index:20;align-items:center;justify-content:center;padding:20px}.modal.show{display:flex}.modalbox{background:white;border-radius:16px;padding:22px;width:min(520px,100%);max-height:90vh;overflow:auto}.modalhead{display:flex;justify-content:space-between}.close{border:0;border-radius:50%;width:34px;height:34px}.hidden{display:none!important}footer{background:#103d27;color:#d9eee1;padding:25px 5%;font-size:12px}@media(max-width:800px){.g2,.g3,.g4,.form{grid-template-columns:1fr}h1{font-size:31px}.top{align-items:flex-start;flex-direction:column}}
+:root{--green:#167447;--deep:#073b25;--gold:#f4b942;--bg:#f4f8f3;--text:#10271c;--muted:#65756b;--line:#dce8df;--shadow:0 18px 50px rgba(7,59,37,.10)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 85% 10%,#e6f5d7 0,transparent 25%),var(--bg);color:var(--text);font:15px Inter,Segoe UI,Arial,sans-serif}
+.top{background:linear-gradient(120deg,var(--deep),#12623d 65%,#1c7549);color:#fff;padding:14px 5%;display:flex;justify-content:space-between;align-items:center;gap:15px}.brand{font-size:24px;font-weight:900}.brand small{display:block;font-size:11px;font-weight:500;opacity:.78}.state{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dot{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px #f4b942}.dot.on{background:#4be08a}
+.btn{border:0;border-radius:12px;padding:11px 15px;font-weight:800;cursor:pointer;transition:.2s transform,.2s box-shadow}.btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(7,59,37,.12)}nav{display:flex;gap:5px;flex-wrap:wrap;padding:10px 5%;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:4}nav button{border:0;border-radius:10px;padding:10px 13px;background:transparent;color:var(--text);font-weight:800;cursor:pointer}nav button.active,nav button:hover{background:#e6f5df;color:var(--green)}
+main{max-width:1280px;margin:auto;padding:30px 5% 65px}.view{display:none}.view.active{display:block}.hero{position:relative;overflow:hidden;background:linear-gradient(125deg,#e2f4df 0%,#fff 56%,#fff4d8 100%);border:1px solid #d2e5d7;border-radius:28px;padding:42px;box-shadow:var(--shadow);min-height:360px;display:flex;align-items:center}.hero:after{content:'🌾';position:absolute;right:35px;bottom:-40px;font-size:210px;opacity:.10}.hero>div{position:relative;z-index:1;max-width:720px}.kicker{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--green);font-weight:900}.hero h1{font-size:clamp(38px,6vw,68px);line-height:.98;margin:10px 0 16px;letter-spacing:-2px}.hero p{font-size:18px;line-height:1.65;color:var(--muted);max-width:680px}.hero .toolbar{margin-top:24px}
+.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow);margin-bottom:16px;transition:.2s transform}.card:hover{transform:translateY(-2px)}h2{margin-top:0}.muted{color:var(--muted)}.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.stat{font-size:34px;font-weight:950;margin-top:5px}.form{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.full{grid-column:1/-1}.field{display:flex;flex-direction:column;gap:6px}label{font-size:13px;font-weight:800}input,select{padding:12px;border:1px solid #cbd8d0;border-radius:11px;background:white;color:var(--text);outline:none}input:focus,select:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(22,116,71,.10)}button.primary{background:linear-gradient(135deg,#11633c,#1b8752);color:white}.secondary{background:#e6f5df;color:#17633c}.light{background:white;border:1px solid var(--line)}.danger{background:#fee4e2;color:#b42318}.blue{background:#eaf2ff;color:#175cd3}.notice{padding:13px 15px;border-radius:12px;margin:10px 0;border:1px solid}.info{background:#edf8ff;border-color:#c4dcf5;color:#174a86}.success{background:#eaf8ef;border-color:#b8e0c3;color:#176b3a}.error{background:#fff0ef;border-color:#f0b8b3;color:#8e2018}.warn{background:#fff8df;border-color:#ead38a;color:#765600}.toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.table{overflow:auto}.table table{width:100%;border-collapse:collapse}.table th,.table td{text-align:left;padding:11px;border-bottom:1px solid var(--line);font-size:13px}.table th{background:#f5f8f6}.badge{display:inline-block;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:900;background:#fef3c7;color:#92400e}.green{background:#dcfce7;color:#166534}.red{background:#fee2e2;color:#991b1b}.modal{display:none;position:fixed;inset:0;background:#04120bad;z-index:20;align-items:center;justify-content:center;padding:20px}.modal.show{display:flex}.modalbox{background:white;border-radius:18px;padding:24px;width:min(520px,100%);max-height:90vh;overflow:auto}.modalhead{display:flex;justify-content:space-between}.close{border:0;border-radius:50%;width:34px;height:34px}.hidden{display:none!important}footer{background:linear-gradient(120deg,#062f1e,#0e5232);color:#d9eee1;padding:30px 5%;font-size:12px}@media(max-width:800px){.g2,.g3,.g4,.form{grid-template-columns:1fr}.hero{padding:28px;min-height:330px}.hero h1{font-size:40px}.hero:after{font-size:130px;right:-10px}.top{align-items:flex-start;flex-direction:column}}
+
+/* ===== CropSync Premium Visual Upgrade ===== */
+:root{
+  --cs-green:#0b5d32;--cs-green2:#168447;--cs-lime:#9ad64b;
+  --cs-gold:#f4b942;--cs-cream:#fffaf0;--cs-ink:#12251a;
+}
+body{
+  background:
+    radial-gradient(circle at 8% 5%, rgba(154,214,75,.16), transparent 28%),
+    radial-gradient(circle at 92% 18%, rgba(244,185,66,.13), transparent 25%),
+    #f5f8f4 !important;
+}
+header, .navbar, nav{
+  backdrop-filter:blur(14px);
+}
+.hero, .hero-section, .banner{
+  position:relative;
+  overflow:hidden;
+}
+.hero::before, .hero-section::before{
+  content:"";
+  position:absolute;inset:-35%;
+  background:radial-gradient(circle,rgba(255,255,255,.22) 0 2px,transparent 3px);
+  background-size:34px 34px;
+  transform:rotate(8deg);opacity:.32;pointer-events:none;
+}
+.card,.stat-card,.feature-card,.dashboard-card{
+  transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease;
+}
+.card:hover,.stat-card:hover,.feature-card:hover,.dashboard-card:hover{
+  transform:translateY(-6px);
+  box-shadow:0 18px 45px rgba(11,93,50,.13) !important;
+  border-color:rgba(22,132,71,.28) !important;
+}
+.btn,button{
+  transition:transform .2s ease,box-shadow .2s ease,filter .2s ease;
+}
+.btn:hover,button:hover{
+  transform:translateY(-2px);
+  filter:saturate(1.08);
+}
+.btn.primary,.primary{
+  box-shadow:0 8px 20px rgba(11,93,50,.22);
+}
+.hero h1{
+  letter-spacing:-.035em;
+}
+.kicker{
+  display:inline-flex;align-items:center;gap:7px;
+}
+.kicker::before{
+  content:"✦";font-size:11px;
+}
+.pulse-dot{
+  display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:#32b56b;box-shadow:0 0 0 0 rgba(50,181,107,.55);
+  animation:csPulse 1.8s infinite;
+}
+@keyframes csPulse{
+  70%{box-shadow:0 0 0 9px rgba(50,181,107,0)}
+  100%{box-shadow:0 0 0 0 rgba(50,181,107,0)}
+}
+.cs-trust{
+  display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;
+}
+.cs-trust span{
+  padding:8px 12px;border:1px solid rgba(11,93,50,.12);
+  background:rgba(255,255,255,.72);border-radius:999px;
+  font-size:12px;font-weight:800;color:#3b5144;
+}
+.cs-metric{
+  font-size:13px;color:#66736b;font-weight:700;
+}
+.cs-metric strong{color:var(--cs-green);font-size:22px}
+@media(max-width:650px){
+  .hero h1{font-size:34px !important}
+}
+
 </style></head><body>
 <header class="top"><div class="brand">🌾 CropSync<small>Secure Farmer Procurement Management</small></div><div class="state"><span class="dot" id="dot"></span><span id="state">Farmer/Public Mode</span><button class="btn light" id="adminBtn">🔐 Admin</button><button class="btn light hidden" id="logoutBtn">Logout</button></div></header>
 <nav id="nav"><button class="active" data-v="home">Dashboard</button><button data-v="register">Farmer Registration</button><button data-v="booking">Slot Booking</button><button data-v="bookings">My Bookings</button><button data-v="queue">Live Queue</button><button data-v="tracking">Tracking</button><button data-v="payment">💳 Payment</button><button class="hidden" id="adminNav" data-v="admin">🔒 Central Admin</button></nav>
 <main>
-<section id="home" class="view active"><div class="hero"><div class="kicker">Farmer-first procurement</div><h1>Less waiting. More certainty.</h1><p>CropSync connects farmer registration, procurement slots, live queue, tracking and farmer-only payments with centralized administration.</p><div class="toolbar"><button class="btn primary" data-go="register">Register Farmer</button><button class="btn secondary" data-go="booking">Book a Slot</button><button class="btn light" data-go="queue">View Queue</button></div></div><div class="grid g4"><div class="card"><div class="kicker">Farmers</div><div class="stat" id="sf">0</div></div><div class="card"><div class="kicker">Bookings</div><div class="stat" id="sb">0</div></div><div class="card"><div class="kicker">Waiting</div><div class="stat" id="sq">0</div></div><div class="card"><div class="kicker">Prices</div><div class="stat">🔒</div><div class="muted">Admin only</div></div></div><div class="notice info"><b>Privacy:</b> farmers can access only their own booking/payment information. Sensitive price and management data stay in the admin area.</div></section>
+<section id="home" class="view active"><div class="hero"><div><div class="kicker">🌱 Smart agriculture • simple procurement</div><h1>From your farm to fair procurement.</h1><p>CropSync helps farmers register, reserve procurement slots, follow the live queue and track procurement and payments — all from one simple portal.</p><div class="toolbar"><button class="btn primary" data-go="register">👨‍🌾 Register Farmer</button><button class="btn secondary" data-go="booking">📅 Book a Slot</button><button class="btn light" data-go="queue">🚜 View Live Queue</button></div></div></div><div class="grid g4"><div class="card"><div class="kicker">Registered Farmers</div><div class="stat" id="sf">0</div><div class="muted">Growing digital community</div></div><div class="card"><div class="kicker">Today's Bookings</div><div class="stat" id="sb">0</div><div class="muted">Planned procurement visits</div></div><div class="card"><div class="kicker">Live Waiting</div><div class="stat" id="sq">0</div><div class="muted">Queue visibility</div></div><div class="card"><div class="kicker">Admin Prices</div><div class="stat">🔒</div><div class="muted">Protected information</div></div></div><div class="grid g3"><div class="card"><h3>📱 Book before you travel</h3><p class="muted">Choose a centre, date and available slot so your visit is planned in advance.</p></div><div class="card"><h3>⏱️ Know your queue</h3><p class="muted">See queue position and service progress instead of waiting without information.</p></div><div class="card"><h3>💳 Track your payment</h3><p class="muted">Follow procurement and payment progress with farmer-specific access.</p></div></div><div class="notice info"><b>🔐 Privacy:</b> farmers can access only their own booking and payment information. Sensitive price and management data stay in the admin area.</div></section>
 <section id="register" class="view"><div class="card"><h2>Farmer Registration</h2><div id="regMsg"></div><form id="reg" class="form"><div class="field"><label>Farmer Name *</label><input id="rn" required maxlength="80"></div><div class="field"><label>Mobile *</label><input id="rp" required maxlength="10" inputmode="numeric"></div><div class="field"><label>Village *</label><input id="rv" required maxlength="80"></div><div class="field"><label>Farmer ID (optional)</label><input id="ri" maxlength="40"></div><div class="field"><label>Primary Crop *</label><select id="rc" required></select></div><div class="field"><label>Land Area (acres) *</label><input id="rl" type="number" min=".1" step=".1" required></div><div class="full"><button class="btn primary">Create Farmer Profile</button></div></form></div></section>
 <section id="booking" class="view"><div class="card"><h2>Slot Booking</h2><div id="bookMsg"></div><form id="book" class="form"><div class="field"><label>Registered Mobile *</label><input id="bp" maxlength="10" required></div><div class="field"><label>Crop *</label><select id="bc"></select></div><div class="field"><label>Procurement Centre *</label><select id="be"></select></div><div class="field"><label>Date *</label><input id="bd" type="date" required></div><div class="field"><label>Slot *</label><select id="bs" required></select><div id="slotInfo" class="muted"></div></div><div class="field"><label>Quantity (quintals) *</label><input id="bq" type="number" min=".1" step=".1" required></div><div class="full"><button class="btn primary">Confirm Booking</button></div></form></div></section>
 <section id="bookings" class="view"><div class="card"><h2>My Bookings</h2><div class="form"><div class="field"><label>Registered Mobile</label><input id="mp"></div><div class="field" style="justify-content:end"><button class="btn secondary" id="findB">Find My Bookings</button></div></div><div id="br" style="margin-top:15px"></div></div></section>
@@ -19,7 +102,33 @@
 <div class="card"><h3>Audit Log</h3><div id="audit"></div></div></section>
 </main><footer><b>CropSync</b> · SIH 2026 · Problem Statement 26032<br>Production architecture: server-side data, authentication, authorization and payment verification are used in this version. Real payment completion still requires a supported payment gateway/webhook.</footer>
 <div class="modal" id="modal"><div class="modalbox" id="mb"></div></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script><script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js">
+/* Premium counter animation */
+(function(){
+  function animateCounter(el){
+    if(!el || el.dataset.animated === "1") return;
+    const target = parseInt(el.textContent || "0", 10);
+    if(!Number.isFinite(target) || target < 1) { el.dataset.animated="1"; return; }
+    el.dataset.animated="1";
+    let start = 0, duration = 700, startTime = null;
+    function tick(t){
+      if(!startTime) startTime=t;
+      const p=Math.min((t-startTime)/duration,1);
+      const eased=1-Math.pow(1-p,3);
+      el.textContent=Math.round(start+(target-start)*eased);
+      if(p<1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  const observer=new MutationObserver(function(){
+    ["statFarmers","statBookings","statQueue","statPaid"].forEach(id=>{
+      const el=document.getElementById(id); if(el){el.dataset.animated=""; animateCounter(el);}
+    });
+  });
+  observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+})();
+
+</script><script>
 const $=id=>document.getElementById(id);let meta={};let admin=false;let data=null;const api=async(u,o={})=>{const r=await fetch(u,{credentials:'same-origin',headers:{'Content-Type':'application/json',...(o.headers||{})},...o});const j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||'Request failed');return j};
 function msg(el,text,type='success'){ $(el).innerHTML='<div class="notice '+type+'">'+esc(text)+'</div>'}function esc(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}function fmt(d){return d?new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'-'}
 function opts(id,a){$(id).innerHTML=a.map(x=>`<option>${esc(x)}</option>`).join('')}
