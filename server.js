@@ -1,235 +1,272 @@
-```js
-const http=require('http'),fs=require('fs'),path=require('path'),crypto=require('crypto');
+```javascript
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 
-const PORT=process.env.PORT||3000;
-const ROOT=__dirname;
-const PUBLIC=path.join(ROOT,'public');
-const DB=path.join(ROOT,'data.json');
+const PORT = process.env.PORT || 3000;
+const ROOT = __dirname;
+const PUBLIC = path.join(ROOT, 'public');
+const DB = path.join(ROOT, 'data.json');
 
-const sessions=new Map(),attempts=new Map(),otps=new Map();
+const sessions = new Map();
+const attempts = new Map();
+const otps = new Map();
 
-const seed={
-  farmers:[],
-  bookings:[],
-  prices:[],
-  centres:[
-    "Mandapeta Procurement Centre",
-    "Rajahmundry Procurement Centre",
-    "Amalapuram Procurement Centre"
+const seed = {
+  farmers: [],
+  bookings: [],
+  prices: [],
+  centres: [
+    'Mandapeta Procurement Centre',
+    'Rajahmundry Procurement Centre',
+    'Amalapuram Procurement Centre'
   ],
-  crops:[
-    "Rice",
-    "Wheat",
-    "Maize",
-    "Groundnut",
-    "Cotton",
-    "Other"
+  crops: [
+    'Rice',
+    'Wheat',
+    'Maize',
+    'Groundnut',
+    'Cotton',
+    'Other'
   ],
-  audit:[],
-  admin:null,
-  settings:{
-    upiId:"",
-    payeeName:"CropSync"
+  audit: [],
+  admin: null,
+  settings: {
+    upiId: '',
+    payeeName: 'CropSync'
   }
 };
 
-function load(){
-  try{
-    return JSON.parse(fs.readFileSync(DB,'utf8'));
-  }catch{
+function load() {
+  try {
+    return JSON.parse(fs.readFileSync(DB, 'utf8'));
+  } catch {
     save(seed);
     return structuredClone(seed);
   }
 }
 
-function save(d){
-  fs.writeFileSync(DB,JSON.stringify(d,null,2));
+function save(d) {
+  fs.writeFileSync(DB, JSON.stringify(d, null, 2));
 }
 
-let db=load();
+let db = load();
 
-function json(res,code,obj){
-  res.writeHead(code,{
-    'Content-Type':'application/json',
-    'Cache-Control':'no-store'
+function json(res, code, obj) {
+  res.writeHead(code, {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-store'
   });
   res.end(JSON.stringify(obj));
 }
 
-function body(req){
-  return new Promise((resolve,reject)=>{
-    let s='';
-    req.on('data',c=>{
-      s+=c;
-      if(s.length>1e6) req.destroy();
+function body(req) {
+  return new Promise((resolve, reject) => {
+    let s = '';
+
+    req.on('data', c => {
+      s += c;
+
+      if (s.length > 1e6) {
+        req.destroy();
+      }
     });
-    req.on('end',()=>{
-      try{
-        resolve(s?JSON.parse(s):{});
-      }catch(e){
+
+    req.on('end', () => {
+      try {
+        resolve(s ? JSON.parse(s) : {});
+      } catch (e) {
         reject(e);
       }
     });
   });
 }
 
-function cookie(req,n){
-  const m=(req.headers.cookie||'')
-    .match(new RegExp('(?:^|; )'+n+'=([^;]*)'));
-  return m&&decodeURIComponent(m[1]);
+function cookie(req, n) {
+  const m = (req.headers.cookie || '').match(
+    new RegExp('(?:^|; )' + n + '=([^;]*)')
+  );
+
+  return m && decodeURIComponent(m[1]);
 }
 
-function session(req){
-  const id=cookie(req,'cs_session');
-  const s=id&&sessions.get(id);
+function session(req) {
+  const sid = cookie(req, 'cs_session');
+  const s = sid && sessions.get(sid);
 
-  if(!s)return null;
-
-  if(s.expires<Date.now()){
-    sessions.delete(id);
+  if (!s) {
     return null;
   }
 
-  s.expires=Date.now()+15*60e3;
+  if (s.expires < Date.now()) {
+    sessions.delete(sid);
+    return null;
+  }
+
+  s.expires = Date.now() + 15 * 60 * 1000;
 
   return s;
 }
 
-function admin(req,res){
-  const s=session(req);
+function admin(req, res) {
+  const s = session(req);
 
-  if(!s?.admin){
-    json(res,401,{
-      error:'Admin authentication required'
+  if (!s || !s.admin) {
+    json(res, 401, {
+      error: 'Admin authentication required'
     });
+
     return null;
   }
 
   return s;
 }
 
-function hash(p,salt){
-  return crypto.scryptSync(p,salt,64).toString('hex');
+function hash(password, salt) {
+  return crypto.scryptSync(password, salt, 64).toString('hex');
 }
 
-function newSalt(){
+function newSalt() {
   return crypto.randomBytes(16).toString('hex');
 }
 
-function audit(action,details){
+function audit(action, details) {
   db.audit.unshift({
-    id:'AUD-'+Date.now(),
-    time:new Date().toISOString(),
-    action,
-    details
+    id: 'AUD-' + Date.now(),
+    time: new Date().toISOString(),
+    action: action,
+    details: details
   });
 
-  db.audit=db.audit.slice(0,200);
+  db.audit = db.audit.slice(0, 200);
 
   save(db);
 }
 
-function id(p){
-  return p+'-'+
-    Date.now().toString(36).toUpperCase()+
-    '-'+
-    crypto.randomBytes(3).toString('hex').toUpperCase();
+function makeId(prefix) {
+  return (
+    prefix +
+    '-' +
+    Date.now().toString(36).toUpperCase() +
+    '-' +
+    crypto.randomBytes(3).toString('hex').toUpperCase()
+  );
 }
 
-function today(){
-  const d=new Date();
+function today() {
+  const d = new Date();
 
   d.setMinutes(
-    d.getMinutes()-d.getTimezoneOffset()
+    d.getMinutes() - d.getTimezoneOffset()
   );
 
-  return d.toISOString().slice(0,10);
+  return d.toISOString().slice(0, 10);
 }
 
-function queue(date,centre){
+function queue(date, centre) {
   return db.bookings
     .filter(
-      b=>
-        b.date===date &&
-        b.centre===centre &&
-        b.queueStatus==='waiting'
+      b =>
+        b.date === date &&
+        b.centre === centre &&
+        b.queueStatus === 'waiting'
     )
     .sort(
-      (a,b)=>a.queueNumber-b.queueNumber
+      (a, b) =>
+        a.queueNumber - b.queueNumber
     );
 }
 
-function nextQ(date,centre){
-  const n=db.bookings
+function nextQ(date, centre) {
+  const numbers = db.bookings
     .filter(
-      b=>
-        b.date===date &&
-        b.centre===centre
+      b =>
+        b.date === date &&
+        b.centre === centre
     )
     .map(
-      b=>Number(b.queueNumber)||0
+      b => Number(b.queueNumber) || 0
     );
 
-  return (n.length?Math.max(...n):0)+1;
+  return (
+    numbers.length
+      ? Math.max(...numbers)
+      : 0
+  ) + 1;
 }
 
-function safeFarmer(f){
+function safeFarmer(f) {
   return {
-    id:f.id,
-    name:f.name,
-    phone:f.phone,
-    village:f.village,
-    crop:f.crop,
-    land:f.land,
-    createdAt:f.createdAt,
-    updatedAt:f.updatedAt
+    id: f.id,
+    name: f.name,
+    phone: f.phone,
+    village: f.village,
+    crop: f.crop,
+    land: f.land,
+    createdAt: f.createdAt,
+    updatedAt: f.updatedAt
   };
 }
 
-async function route(req,res){
+async function route(req, res) {
+  try {
+    const u = new URL(
+      req.url,
+      'http://localhost'
+    );
 
-  try{
+    const p = u.pathname;
 
-    const u=new URL(req.url,'http://localhost');
-    const p=u.pathname;
+    /* ==================== BOOTSTRAP ==================== */
 
-    if(req.method==='GET'&&p==='/api/bootstrap')
-      return json(res,200,{
-        crops:db.crops,
-        centres:db.centres,
-        settings:{
-          payeeName:db.settings.payeeName,
-          upiConfigured:!!db.settings.upiId
+    if (
+      req.method === 'GET' &&
+      p === '/api/bootstrap'
+    ) {
+      return json(res, 200, {
+        crops: db.crops,
+        centres: db.centres,
+        settings: {
+          payeeName: db.settings.payeeName,
+          upiConfigured: !!db.settings.upiId
         },
-        today:today(),
-        adminConfigured:!!db.admin
+        today: today(),
+        adminConfigured: !!db.admin
       });
+    }
 
-    if(req.method==='POST'&&p==='/api/admin/setup'){
+    /* ==================== ADMIN SETUP ==================== */
 
-      if(db.admin)
-        return json(res,409,{
-          error:'Admin is already configured'
+    if (
+      req.method === 'POST' &&
+      p === '/api/admin/setup'
+    ) {
+      if (db.admin) {
+        return json(res, 409, {
+          error: 'Admin is already configured'
         });
+      }
 
-      const b=await body(req);
+      const b = await body(req);
 
-      if(
-        !b.email||
-        !b.password||
-        b.password.length<8
-      )
-        return json(res,400,{
+      if (
+        !b.email ||
+        !b.password ||
+        b.password.length < 8
+      ) {
+        return json(res, 400, {
           error:
             'Email and password (8+ characters) are required'
         });
+      }
 
-      const salt=newSalt();
+      const salt = newSalt();
 
-      db.admin={
-        email:b.email.toLowerCase().trim(),
-        salt,
-        hash:hash(b.password,salt)
+      db.admin = {
+        email: b.email.toLowerCase().trim(),
+        salt: salt,
+        hash: hash(b.password, salt)
       };
 
       save(db);
@@ -239,56 +276,85 @@ async function route(req,res){
         'Initial administrator account created'
       );
 
-      return json(res,200,{ok:true});
+      return json(res, 200, {
+        ok: true
+      });
     }
 
-    if(req.method==='POST'&&p==='/api/admin/login'){
+    /* ==================== ADMIN LOGIN ==================== */
 
-      const ip=req.socket.remoteAddress||'unknown';
+    if (
+      req.method === 'POST' &&
+      p === '/api/admin/login'
+    ) {
+      const ip =
+        req.socket.remoteAddress || 'unknown';
 
-      const a=attempts.get(ip)||{
-        n:0,
-        until:0
-      };
+      const a =
+        attempts.get(ip) || {
+          n: 0,
+          until: 0
+        };
 
-      if(a.until>Date.now())
-        return json(res,429,{
+      if (a.until > Date.now()) {
+        return json(res, 429, {
           error:
             'Too many failed attempts. Try again later.'
         });
+      }
 
-      const b=await body(req);
+      const b = await body(req);
 
-      if(!db.admin)
-        return json(res,400,{
-          error:'Admin setup required'
+      if (!db.admin) {
+        return json(res, 400, {
+          error: 'Admin setup required'
         });
+      }
 
-      const ok=
-        b.email?.toLowerCase().trim()===
-          db.admin.email&&
+      let passwordHash;
+
+      try {
+        passwordHash = hash(
+          b.password || '',
+          db.admin.salt
+        );
+      } catch {
+        passwordHash = '';
+      }
+
+      const supplied =
+        Buffer.from(passwordHash);
+
+      const stored =
+        Buffer.from(db.admin.hash);
+
+      const passwordMatches =
+        supplied.length === stored.length &&
         crypto.timingSafeEqual(
-          Buffer.from(
-            hash(
-              b.password||'',
-              db.admin.salt
-            )
-          ),
-          Buffer.from(db.admin.hash)
+          supplied,
+          stored
         );
 
-      if(!ok){
+      const ok =
+        b.email &&
+        b.email.toLowerCase().trim() ===
+          db.admin.email &&
+        passwordMatches;
 
+      if (!ok) {
         a.n++;
 
-        if(a.n>=5){
-          a.until=Date.now()+5*60e3;
-          a.n=0;
+        if (a.n >= 5) {
+          a.until =
+            Date.now() +
+            5 * 60 * 1000;
+
+          a.n = 0;
         }
 
-        attempts.set(ip,a);
+        attempts.set(ip, a);
 
-        return json(res,401,{
+        return json(res, 401, {
           error:
             'Invalid administrator credentials'
         });
@@ -296,16 +362,27 @@ async function route(req,res){
 
       attempts.delete(ip);
 
-      const sid=crypto.randomBytes(32).toString('hex');
+      const sid =
+        crypto.randomBytes(32).toString('hex');
 
-      sessions.set(sid,{
-        admin:true,
-        expires:Date.now()+15*60e3
+      sessions.set(sid, {
+        admin: true,
+        expires:
+          Date.now() +
+          15 * 60 * 1000
       });
 
+      /*
+       * IMPORTANT:
+       * No template literal is used here.
+       * This prevents the syntax error from your
+       * Render deployment.
+       */
       res.setHeader(
         'Set-Cookie',
-        `cs_session=${sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=900`
+        'cs_session=' +
+          sid +
+          '; HttpOnly; SameSite=Strict; Path=/; Max-Age=900'
       );
 
       audit(
@@ -313,622 +390,793 @@ async function route(req,res){
         'Administrator logged in'
       );
 
-      return json(res,200,{ok:true});
+      return json(res, 200, {
+        ok: true
+      });
     }
 
-    if(req.method==='POST'&&p==='/api/admin/logout'){
+    /* ==================== ADMIN LOGOUT ==================== */
 
-      const s=session(req);
+    if (
+      req.method === 'POST' &&
+      p === '/api/admin/logout'
+    ) {
+      const s = session(req);
 
-      if(s)
+      if (s) {
         audit(
           'ADMIN_LOGOUT',
           'Administrator logged out'
         );
+      }
 
-      const sid=cookie(req,'cs_session');
+      const sid = cookie(
+        req,
+        'cs_session'
+      );
 
-      if(sid)
+      if (sid) {
         sessions.delete(sid);
+      }
 
       res.setHeader(
         'Set-Cookie',
         'cs_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'
       );
 
-      return json(res,200,{ok:true});
+      return json(res, 200, {
+        ok: true
+      });
     }
 
-    if(req.method==='GET'&&p==='/api/admin/me')
-      return json(res,200,{
-        authenticated:!!session(req),
-        configured:!!db.admin
+    /* ==================== ADMIN ME ==================== */
+
+    if (
+      req.method === 'GET' &&
+      p === '/api/admin/me'
+    ) {
+      return json(res, 200, {
+        authenticated:
+          !!session(req),
+        configured:
+          !!db.admin
       });
+    }
 
-    if(req.method==='POST'&&p==='/api/otp'){
+    /* ==================== OTP ==================== */
 
-      const b=await body(req);
+    if (
+      req.method === 'POST' &&
+      p === '/api/otp'
+    ) {
+      const b = await body(req);
 
-      if(!/^\d{10}$/.test(b.phone||''))
-        return json(res,400,{
+      if (
+        !/^\d{10}$/.test(
+          b.phone || ''
+        )
+      ) {
+        return json(res, 400, {
           error:
             'Enter a valid 10-digit mobile number'
         });
+      }
 
-      const code=String(
-        crypto.randomInt(100000,1000000)
+      const code = String(
+        crypto.randomInt(
+          100000,
+          1000000
+        )
       );
 
-      otps.set(b.phone,{
-        code,
-        expires:Date.now()+5*60e3
+      otps.set(b.phone, {
+        code: code,
+        expires:
+          Date.now() +
+          5 * 60 * 1000
       });
 
-      return json(res,200,{
-        ok:true,
-        demoOtp:code,
+      return json(res, 200, {
+        ok: true,
+        demoOtp: code,
         message:
           'Demo OTP generated. Production should send this through an SMS provider.'
       });
     }
 
-    if(req.method==='POST'&&p==='/api/otp/verify'){
+    if (
+      req.method === 'POST' &&
+      p === '/api/otp/verify'
+    ) {
+      const b = await body(req);
 
-      const b=await body(req);
-      const o=otps.get(b.phone);
+      const o = otps.get(b.phone);
 
-      if(
-        !o||
-        o.expires<Date.now()||
-        o.code!==String(b.code)
-      )
-        return json(res,401,{
-          error:'Invalid or expired OTP'
+      if (
+        !o ||
+        o.expires < Date.now() ||
+        o.code !== String(b.code)
+      ) {
+        return json(res, 401, {
+          error:
+            'Invalid or expired OTP'
         });
+      }
 
       otps.delete(b.phone);
 
-      return json(res,200,{
-        verified:true
+      return json(res, 200, {
+        verified: true
       });
     }
 
-    if(req.method==='GET'&&p==='/api/farmers'){
+    /* ==================== FARMERS ==================== */
 
-      const s=session(req);
+    if (
+      req.method === 'GET' &&
+      p === '/api/farmers'
+    ) {
+      const s = session(req);
 
-      if(!s?.admin)
-        return json(res,200,{
-          farmers:[]
+      if (!s || !s.admin) {
+        return json(res, 200, {
+          farmers: []
         });
+      }
 
-      return json(res,200,{
-        farmers:db.farmers.map(safeFarmer)
+      return json(res, 200, {
+        farmers:
+          db.farmers.map(safeFarmer)
       });
     }
 
-    if(req.method==='POST'&&p==='/api/farmers'){
+    if (
+      req.method === 'POST' &&
+      p === '/api/farmers'
+    ) {
+      const b = await body(req);
 
-      const b=await body(req);
-
-      if(
-        !b.name||
-        !/^\d{10}$/.test(b.phone)||
-        !b.village||
-        !b.crop||
-        !(Number(b.land)>0)
-      )
-        return json(res,400,{
-          error:'Invalid registration details'
+      if (
+        !b.name ||
+        !/^\d{10}$/.test(
+          b.phone || ''
+        ) ||
+        !b.village ||
+        !b.crop ||
+        !(Number(b.land) > 0)
+      ) {
+        return json(res, 400, {
+          error:
+            'Invalid registration details'
         });
+      }
 
-      if(!db.crops.includes(b.crop))
-        return json(res,400,{
-          error:'Invalid crop'
+      if (!db.crops.includes(b.crop)) {
+        return json(res, 400, {
+          error: 'Invalid crop'
         });
+      }
 
-      if(
+      if (
         db.farmers.some(
-          f=>f.phone===b.phone
+          f => f.phone === b.phone
         )
-      )
-        return json(res,409,{
+      ) {
+        return json(res, 409, {
           error:
             'Mobile number already registered'
         });
+      }
 
-      const f={
-        id:b.farmerId?.trim()||id('FARM'),
-        name:b.name.trim(),
-        phone:b.phone,
-        village:b.village.trim(),
-        crop:b.crop,
-        land:Number(b.land),
-        createdAt:new Date().toISOString(),
-        updatedAt:new Date().toISOString()
+      const f = {
+        id:
+          b.farmerId &&
+          b.farmerId.trim()
+            ? b.farmerId.trim()
+            : makeId('FARM'),
+
+        name: b.name.trim(),
+        phone: b.phone,
+        village: b.village.trim(),
+        crop: b.crop,
+        land: Number(b.land),
+
+        createdAt:
+          new Date().toISOString(),
+
+        updatedAt:
+          new Date().toISOString()
       };
 
       db.farmers.push(f);
+
       save(db);
 
-      return json(res,201,{
-        farmer:safeFarmer(f)
+      return json(res, 201, {
+        farmer: safeFarmer(f)
       });
     }
 
-    if(
-      req.method==='PUT'&&
+    if (
+      req.method === 'PUT' &&
       p.startsWith('/api/farmers/')
-    ){
+    ) {
+      if (!admin(req, res)) {
+        return;
+      }
 
-      if(!admin(req,res))return;
+      const farmerId =
+        decodeURIComponent(
+          p.split('/').pop()
+        );
 
-      const f=db.farmers.find(
-        x=>
-          x.id===
-          decodeURIComponent(
-            p.split('/').pop()
-          )
-      );
+      const f =
+        db.farmers.find(
+          x => x.id === farmerId
+        );
 
-      if(!f)
-        return json(res,404,{
-          error:'Farmer not found'
+      if (!f) {
+        return json(res, 404, {
+          error:
+            'Farmer not found'
         });
+      }
 
-      const b=await body(req);
+      const b = await body(req);
 
-      if(
-        !/^\d{10}$/.test(b.phone)||
+      if (
+        !/^\d{10}$/.test(
+          b.phone || ''
+        ) ||
         db.farmers.some(
-          x=>
-            x.id!==f.id&&
-            x.phone===b.phone
+          x =>
+            x.id !== f.id &&
+            x.phone === b.phone
         )
-      )
-        return json(res,400,{
+      ) {
+        return json(res, 400, {
           error:
             'Invalid or duplicate mobile number'
         });
+      }
 
-      Object.assign(f,{
-        name:b.name.trim(),
-        phone:b.phone,
-        village:b.village.trim(),
-        crop:b.crop,
-        land:Number(b.land),
-        updatedAt:new Date().toISOString()
+      Object.assign(f, {
+        name: b.name.trim(),
+        phone: b.phone,
+        village: b.village.trim(),
+        crop: b.crop,
+        land: Number(b.land),
+        updatedAt:
+          new Date().toISOString()
       });
 
       save(db);
-      audit('FARMER_UPDATE',f.id);
 
-      return json(res,200,{
-        farmer:safeFarmer(f)
+      audit(
+        'FARMER_UPDATE',
+        f.id
+      );
+
+      return json(res, 200, {
+        farmer: safeFarmer(f)
       });
     }
 
-    if(
-      req.method==='DELETE'&&
+    if (
+      req.method === 'DELETE' &&
       p.startsWith('/api/farmers/')
-    ){
+    ) {
+      if (!admin(req, res)) {
+        return;
+      }
 
-      if(!admin(req,res))return;
+      const farmerId =
+        decodeURIComponent(
+          p.split('/').pop()
+        );
 
-      const fid=decodeURIComponent(
-        p.split('/').pop()
-      );
-
-      if(
+      if (
         db.bookings.some(
-          b=>
-            b.farmerId===fid&&
+          b =>
+            b.farmerId === farmerId &&
             ![
               'Rejected',
               'Payment Completed'
             ].includes(b.status)
         )
-      )
-        return json(res,409,{
+      ) {
+        return json(res, 409, {
           error:
             'Cannot delete a farmer with an active booking'
         });
+      }
 
-      db.farmers=db.farmers.filter(
-        f=>f.id!==fid
-      );
+      db.farmers =
+        db.farmers.filter(
+          f => f.id !== farmerId
+        );
 
       save(db);
-      audit('FARMER_DELETE',fid);
 
-      return json(res,200,{ok:true});
-    }
-
-    if(
-      req.method==='GET'&&
-      p==='/api/bookings'
-    ){
-
-      const bq=new URL(
-        req.url,
-        'http://localhost'
-      )
-        .searchParams
-        .get('phone');
-
-      if(!bq)
-        return json(res,400,{
-          error:'Mobile required'
-        });
-
-      const f=db.farmers.find(
-        x=>x.phone===bq
+      audit(
+        'FARMER_DELETE',
+        farmerId
       );
 
-      if(!f)
-        return json(res,404,{
-          error:'Farmer not found'
-        });
-
-      return json(res,200,{
-        bookings:
-          db.bookings
-            .filter(
-              b=>b.farmerId===f.id
-            )
-            .map(
-              b=>({
-                ...b,
-                farmerName:f.name
-              })
-            )
+      return json(res, 200, {
+        ok: true
       });
     }
 
-    if(
-      req.method==='POST'&&
-      p==='/api/bookings'
-    ){
+    /* ==================== BOOKINGS ==================== */
 
-      const b=await body(req);
-
-      const f=db.farmers.find(
-        x=>x.phone===b.phone
-      );
-
-      if(!f)
-        return json(res,404,{
-          error:'No farmer profile found'
-        });
-
-      if(
-        !db.crops.includes(b.crop)||
-        !db.centres.includes(b.centre)||
-        !b.date||
-        b.date<today()||
-        !b.slot||
-        !(Number(b.quantity)>0)
-      )
-        return json(res,400,{
-          error:'Invalid booking details'
-        });
-
-      if(
-        db.bookings.some(
-          x=>
-            x.farmerId===f.id&&
-            x.date===b.date&&
-            x.centre===b.centre&&
-            x.slot===b.slot&&
-            ![
-              'Rejected',
-              'Payment Completed'
-            ].includes(x.status)
-        )
-      )
-        return json(res,409,{
-          error:
-            'Active booking already exists for this centre, date and slot'
-        });
-
-      const pr=db.prices.find(
-        x=>
-          x.date===b.date&&
-          x.centre===b.centre&&
-          x.crop===b.crop
-      );
-
-      const q=
-        b.date===today()
-          ?nextQ(b.date,b.centre)
-          :null;
-
-      const x={
-        id:id('BK'),
-        farmerId:f.id,
-        centre:b.centre,
-        crop:b.crop,
-        date:b.date,
-        slot:b.slot,
-        quantity:Number(b.quantity),
-        queueNumber:q,
-        queueStatus:q?'waiting':'scheduled',
-        status:'Booked',
-        paymentStatus:'Pending',
-        paymentMode:null,
-        transactionId:null,
-        estimatedAmount:
-          pr
-            ?Number(
-                (
-                  pr.price*
-                  Number(b.quantity)
-                ).toFixed(2)
-              )
-            :null,
-        amount:null,
-        paymentReference:null,
-        createdAt:new Date().toISOString(),
-        updatedAt:new Date().toISOString()
-      };
-
-      db.bookings.push(x);
-      save(db);
-
-      return json(res,201,{
-        booking:x
-      });
-    }
-
-    if(
-      req.method==='GET'&&
-      p==='/api/queue'
-    ){
-
-      const q=queue(
-        today(),
+    if (
+      req.method === 'GET' &&
+      p === '/api/bookings'
+    ) {
+      const phone =
         new URL(
           req.url,
           'http://localhost'
         )
           .searchParams
-          .get('centre')||
-          db.centres[0]
+          .get('phone');
+
+      if (!phone) {
+        return json(res, 400, {
+          error: 'Mobile required'
+        });
+      }
+
+      const f =
+        db.farmers.find(
+          x => x.phone === phone
+        );
+
+      if (!f) {
+        return json(res, 404, {
+          error:
+            'Farmer not found'
+        });
+      }
+
+      return json(res, 200, {
+        bookings:
+          db.bookings
+            .filter(
+              b =>
+                b.farmerId === f.id
+            )
+            .map(
+              b => ({
+                ...b,
+                farmerName: f.name
+              })
+            )
+      });
+    }
+
+    if (
+      req.method === 'POST' &&
+      p === '/api/bookings'
+    ) {
+      const b = await body(req);
+
+      const f =
+        db.farmers.find(
+          x => x.phone === b.phone
+        );
+
+      if (!f) {
+        return json(res, 404, {
+          error:
+            'No farmer profile found'
+        });
+      }
+
+      if (
+        !db.crops.includes(b.crop) ||
+        !db.centres.includes(b.centre) ||
+        !b.date ||
+        b.date < today() ||
+        !b.slot ||
+        !(Number(b.quantity) > 0)
+      ) {
+        return json(res, 400, {
+          error:
+            'Invalid booking details'
+        });
+      }
+
+      if (
+        db.bookings.some(
+          x =>
+            x.farmerId === f.id &&
+            x.date === b.date &&
+            x.centre === b.centre &&
+            x.slot === b.slot &&
+            ![
+              'Rejected',
+              'Payment Completed'
+            ].includes(x.status)
+        )
+      ) {
+        return json(res, 409, {
+          error:
+            'Active booking already exists for this centre, date and slot'
+        });
+      }
+
+      const price =
+        db.prices.find(
+          x =>
+            x.date === b.date &&
+            x.centre === b.centre &&
+            x.crop === b.crop
+        );
+
+      const q =
+        b.date === today()
+          ? nextQ(
+              b.date,
+              b.centre
+            )
+          : null;
+
+      const booking = {
+        id: makeId('BK'),
+
+        farmerId: f.id,
+
+        centre: b.centre,
+        crop: b.crop,
+        date: b.date,
+        slot: b.slot,
+
+        quantity:
+          Number(b.quantity),
+
+        queueNumber: q,
+
+        queueStatus:
+          q
+            ? 'waiting'
+            : 'scheduled',
+
+        status: 'Booked',
+
+        paymentStatus:
+          'Pending',
+
+        paymentMode: null,
+        transactionId: null,
+
+        estimatedAmount:
+          price
+            ? Number(
+                (
+                  price.price *
+                  Number(b.quantity)
+                ).toFixed(2)
+              )
+            : null,
+
+        amount: null,
+        paymentReference: null,
+
+        createdAt:
+          new Date().toISOString(),
+
+        updatedAt:
+          new Date().toISOString()
+      };
+
+      db.bookings.push(
+        booking
       );
 
-      return json(res,200,{
+      save(db);
+
+      return json(res, 201, {
+        booking: booking
+      });
+    }
+
+    /* ==================== QUEUE ==================== */
+
+    if (
+      req.method === 'GET' &&
+      p === '/api/queue'
+    ) {
+      const centre =
+        new URL(
+          req.url,
+          'http://localhost'
+        )
+          .searchParams
+          .get('centre') ||
+        db.centres[0];
+
+      const q =
+        queue(
+          today(),
+          centre
+        );
+
+      return json(res, 200, {
         queue:
           q.map(
-            (b,i)=>({
-              id:b.id,
-              queueNumber:b.queueNumber,
-              centre:b.centre,
-              slot:b.slot,
-              position:i+1,
-              estimatedWait:i*15
+            (b, i) => ({
+              id: b.id,
+              queueNumber:
+                b.queueNumber,
+              centre: b.centre,
+              slot: b.slot,
+              position: i + 1,
+              estimatedWait:
+                i * 15
             })
           )
       });
     }
 
-    if(
-      req.method==='GET'&&
-      p==='/api/admin/data'
-    ){
+    /* ==================== ADMIN DATA ==================== */
 
-      if(!admin(req,res))return;
+    if (
+      req.method === 'GET' &&
+      p === '/api/admin/data'
+    ) {
+      if (!admin(req, res)) {
+        return;
+      }
 
-      return json(res,200,{
-        farmers:db.farmers,
-        bookings:db.bookings,
-        prices:db.prices,
-        centres:db.centres,
-        crops:db.crops,
-        audit:db.audit.slice(0,50),
-        settings:{
-          payeeName:db.settings.payeeName,
-          upiId:db.settings.upiId
+      return json(res, 200, {
+        farmers: db.farmers,
+        bookings: db.bookings,
+        prices: db.prices,
+        centres: db.centres,
+        crops: db.crops,
+        audit:
+          db.audit.slice(0, 50),
+
+        settings: {
+          payeeName:
+            db.settings.payeeName,
+          upiId:
+            db.settings.upiId
         }
       });
     }
 
-    if(
-      req.method==='POST'&&
-      p==='/api/admin/price'
-    ){
+    /* ==================== ADMIN PRICE ==================== */
 
-      if(!admin(req,res))return;
+    if (
+      req.method === 'POST' &&
+      p === '/api/admin/price'
+    ) {
+      if (!admin(req, res)) {
+        return;
+      }
 
-      const b=await body(req);
+      const b = await body(req);
 
-      if(
-        !b.date||
-        !db.centres.includes(b.centre)||
-        !db.crops.includes(b.crop)||
-        !(Number(b.price)>0)
-      )
-        return json(res,400,{
-          error:'Invalid price'
+      if (
+        !b.date ||
+        !db.centres.includes(b.centre) ||
+        !db.crops.includes(b.crop) ||
+        !(Number(b.price) > 0)
+      ) {
+        return json(res, 400, {
+          error: 'Invalid price'
         });
+      }
 
-      let x=db.prices.find(
-        x=>
-          x.date===b.date&&
-          x.centre===b.centre&&
-          x.crop===b.crop
-      );
+      let price =
+        db.prices.find(
+          x =>
+            x.date === b.date &&
+            x.centre === b.centre &&
+            x.crop === b.crop
+        );
 
-      if(x){
-        x.price=Number(b.price);
-      }else{
-        x={
-          id:id('PR'),
-          date:b.date,
-          centre:b.centre,
-          crop:b.crop,
-          price:Number(b.price)
+      if (price) {
+        price.price =
+          Number(b.price);
+      } else {
+        price = {
+          id: makeId('PR'),
+          date: b.date,
+          centre: b.centre,
+          crop: b.crop,
+          price: Number(b.price)
         };
 
-        db.prices.push(x);
+        db.prices.push(price);
       }
 
       save(db);
 
       audit(
         'PRICE_UPDATE',
-        `${b.date}/${b.crop}/${b.centre}`
+        b.date +
+          '/' +
+          b.crop +
+          '/' +
+          b.centre
       );
 
-      return json(res,200,{
-        price:x
+      return json(res, 200, {
+        price: price
       });
     }
 
-    if(
-      req.method==='DELETE'&&
+    if (
+      req.method === 'DELETE' &&
       p.startsWith('/api/admin/price/')
-    ){
+    ) {
+      if (!admin(req, res)) {
+        return;
+      }
 
-      if(!admin(req,res))return;
+      const priceId =
+        decodeURIComponent(
+          p.split('/').pop()
+        );
 
-      const pid=decodeURIComponent(
-        p.split('/').pop()
-      );
-
-      db.prices=db.prices.filter(
-        x=>x.id!==pid
-      );
+      db.prices =
+        db.prices.filter(
+          x => x.id !== priceId
+        );
 
       save(db);
 
-      audit('PRICE_DELETE',pid);
+      audit(
+        'PRICE_DELETE',
+        priceId
+      );
 
-      return json(res,200,{
-        ok:true
+      return json(res, 200, {
+        ok: true
       });
     }
 
-    if(
-      req.method==='POST'&&
-      p==='/api/admin/centre'
-    ){
+    /* ==================== CENTRE ==================== */
 
-      if(!admin(req,res))return;
+    if (
+      req.method === 'POST' &&
+      p === '/api/admin/centre'
+    ) {
+      if (!admin(req, res)) {
+        return;
+      }
 
-      const b=await body(req);
+      const b = await body(req);
 
-      if(!b.name?.trim())
-        return json(res,400,{
-          error:'Centre name required'
+      if (!b.name || !b.name.trim()) {
+        return json(res, 400, {
+          error:
+            'Centre name required'
         });
+      }
 
-      if(
-        !db.centres.includes(
-          b.name.trim()
-        )
-      )
-        db.centres.push(
-          b.name.trim()
-        );
+      const name =
+        b.name.trim();
+
+      if (!db.centres.includes(name)) {
+        db.centres.push(name);
+      }
 
       save(db);
 
       audit(
         'CENTRE_CREATE',
-        b.name.trim()
+        name
       );
 
-      return json(res,200,{
-        centres:db.centres
+      return json(res, 200, {
+        centres: db.centres
       });
     }
 
-    if(
-      req.method==='DELETE'&&
+    if (
+      req.method === 'DELETE' &&
       p.startsWith('/api/admin/centre/')
-    ){
+    ) {
+      if (!admin(req, res)) {
+        return;
+      }
 
-      if(!admin(req,res))return;
+      const centre =
+        decodeURIComponent(
+          p.split('/').slice(4).join('/')
+        );
 
-      const name=decodeURIComponent(
-        p.split('/').slice(4).join('/')
-      );
-
-      if(
+      if (
         db.bookings.some(
-          b=>b.centre===name
+          b => b.centre === centre
         )
-      )
-        return json(res,409,{
+      ) {
+        return json(res, 409, {
           error:
             'Cannot remove a centre used by bookings'
         });
+      }
 
-      db.centres=db.centres.filter(
-        x=>x!==name
-      );
+      db.centres =
+        db.centres.filter(
+          x => x !== centre
+        );
 
       save(db);
 
-      return json(res,200,{
-        centres:db.centres
+      return json(res, 200, {
+        centres: db.centres
       });
     }
 
-    if(
-      req.method==='POST'&&
-      p==='/api/admin/crop'
-    ){
+    /* ==================== CROP ==================== */
 
-      if(!admin(req,res))return;
+    if (
+      req.method === 'POST' &&
+      p === '/api/admin/crop'
+    ) {
+      if (!admin(req, res)) {
+        return;
+      }
 
-      const b=await body(req);
+      const b = await body(req);
 
-      if(!b.name?.trim())
-        return json(res,400,{
-          error:'Crop name required'
+      if (!b.name || !b.name.trim()) {
+        return json(res, 400, {
+          error:
+            'Crop name required'
         });
+      }
 
-      if(
-        !db.crops.includes(
-          b.name.trim()
-        )
-      )
-        db.crops.push(
-          b.name.trim()
-        );
+      const name =
+        b.name.trim();
+
+      if (!db.crops.includes(name)) {
+        db.crops.push(name);
+      }
 
       save(db);
 
       audit(
         'CROP_CREATE',
-        b.name.trim()
+        name
       );
 
-      return json(res,200,{
-        crops:db.crops
+      return json(res, 200, {
+        crops: db.crops
       });
     }
 
-    if(
-      req.method==='POST'&&
-      p==='/api/admin/booking/status'
-    ){
+    /* ==================== BOOKING STATUS ==================== */
 
-      if(!admin(req,res))return;
+    if (
+      req.method === 'POST' &&
+      p === '/api/admin/booking/status'
+    ) {
+      if (!admin(req, res)) {
+        return;
+      }
 
-      const b=await body(req);
+      const b = await body(req);
 
-      const x=db.bookings.find(
-        x=>x.id===b.id
-      );
+      const x =
+        db.bookings.find(
+          x => x.id === b.id
+        );
 
-      if(!x)
-        return json(res,404,{
-          error:'Booking not found'
+      if (!x) {
+        return json(res, 404, {
+          error:
+            'Booking not found'
         });
+      }
 
-      const allowed=[
+      const allowed = [
         'Booked',
         'Arrived',
         'Quality Check',
@@ -939,68 +1187,80 @@ async function route(req,res){
         'Payment Completed'
       ];
 
-      if(!allowed.includes(b.status))
-        return json(res,400,{
-          error:'Invalid status'
+      if (!allowed.includes(b.status)) {
+        return json(res, 400, {
+          error:
+            'Invalid status'
         });
-
-      x.status=b.status;
-
-      x.paymentMode=
-        b.paymentMode||
-        x.paymentMode;
-
-      if(
-        b.status===
-        'Payment Completed'
-      ){
-        x.paymentStatus='Completed';
-
-        x.transactionId=
-          x.transactionId||
-          id('TXN');
       }
 
-      x.updatedAt=
+      x.status = b.status;
+
+      if (b.paymentMode) {
+        x.paymentMode =
+          b.paymentMode;
+      }
+
+      if (
+        b.status ===
+        'Payment Completed'
+      ) {
+        x.paymentStatus =
+          'Completed';
+
+        x.transactionId =
+          x.transactionId ||
+          makeId('TXN');
+      }
+
+      x.updatedAt =
         new Date().toISOString();
 
       save(db);
 
       audit(
         'BOOKING_STATUS',
-        `${x.id} -> ${x.status}`
+        x.id +
+          ' -> ' +
+          x.status
       );
 
-      return json(res,200,{
-        booking:x
+      return json(res, 200, {
+        booking: x
       });
     }
 
-    if(
-      req.method==='POST'&&
-      p==='/api/admin/booking/reject'
-    ){
+    /* ==================== REJECT BOOKING ==================== */
 
-      if(!admin(req,res))return;
+    if (
+      req.method === 'POST' &&
+      p === '/api/admin/booking/reject'
+    ) {
+      if (!admin(req, res)) {
+        return;
+      }
 
-      const b=await body(req);
+      const b = await body(req);
 
-      const x=db.bookings.find(
-        x=>x.id===b.id
-      );
+      const x =
+        db.bookings.find(
+          x => x.id === b.id
+        );
 
-      if(!x)
-        return json(res,404,{
-          error:'Booking not found'
+      if (!x) {
+        return json(res, 404, {
+          error:
+            'Booking not found'
         });
+      }
 
-      x.status='Rejected';
+      x.status = 'Rejected';
 
-      x.rejectReason=
-        b.reason||
+      x.rejectReason =
+        b.reason ||
         'Not specified';
 
-      x.updatedAt=
+      x.updatedAt =
         new Date().toISOString();
 
       save(db);
@@ -1010,39 +1270,46 @@ async function route(req,res){
         x.id
       );
 
-      return json(res,200,{
-        booking:x
+      return json(res, 200, {
+        booking: x
       });
     }
 
-    if(
-      req.method==='POST'&&
-      p==='/api/admin/queue/serve'
-    ){
+    /* ==================== SERVE QUEUE ==================== */
 
-      if(!admin(req,res))return;
+    if (
+      req.method === 'POST' &&
+      p === '/api/admin/queue/serve'
+    ) {
+      if (!admin(req, res)) {
+        return;
+      }
 
-      const x=
+      const x =
         queue(
           today(),
           db.centres[0]
-        )[0]||
+        )[0] ||
         db.bookings.find(
-          b=>
-            b.date===today()&&
-            b.queueStatus==='waiting'
+          b =>
+            b.date === today() &&
+            b.queueStatus === 'waiting'
         );
 
-      if(!x)
-        return json(res,404,{
+      if (!x) {
+        return json(res, 404, {
           error:
             'No farmer waiting today'
         });
+      }
 
-      x.queueStatus='served';
-      x.status='Arrived';
+      x.queueStatus =
+        'served';
 
-      x.updatedAt=
+      x.status =
+        'Arrived';
+
+      x.updatedAt =
         new Date().toISOString();
 
       save(db);
@@ -1052,128 +1319,140 @@ async function route(req,res){
         x.id
       );
 
-      return json(res,200,{
-        booking:x
+      return json(res, 200, {
+        booking: x
       });
     }
 
-    /* ==================== ORIGINAL UPI PAYMENT ==================== */
+    /* ==================== UPI PAYMENT ==================== */
 
-    if(
-      req.method==='POST'&&
-      p==='/api/payment/request'
-    ){
+    if (
+      req.method === 'POST' &&
+      p === '/api/payment/request'
+    ) {
+      const b = await body(req);
 
-      const b=await body(req);
+      const f =
+        db.farmers.find(
+          x => x.phone === b.phone
+        );
 
-      const f=db.farmers.find(
-        x=>x.phone===b.phone
-      );
+      const x =
+        db.bookings.find(
+          x => x.id === b.bookingId
+        );
 
-      const x=db.bookings.find(
-        x=>x.id===b.bookingId
-      );
-
-      if(
-        !f||
-        !x||
-        x.farmerId!==f.id
-      )
-        return json(res,403,{
+      if (
+        !f ||
+        !x ||
+        x.farmerId !== f.id
+      ) {
+        return json(res, 403, {
           error:
             'You can pay only for your own booking'
         });
+      }
 
-      if(
+      if (
         ![
           'Procurement Complete',
           'Payment Processing'
         ].includes(x.status)
-      )
-        return json(res,400,{
+      ) {
+        return json(res, 400, {
           error:
             'Payment is not yet available'
         });
+      }
 
-      const amount=
+      const amount =
         Number(
-          x.amount||
-          x.estimatedAmount||
+          x.amount ||
+          x.estimatedAmount ||
           0
         );
 
-      if(!(amount>0))
-        return json(res,400,{
+      if (!(amount > 0)) {
+        return json(res, 400, {
           error:
             'Payable amount is not available yet'
         });
+      }
 
-      if(!db.settings.upiId)
-        return json(res,400,{
+      if (!db.settings.upiId) {
+        return json(res, 400, {
           error:
             'Admin has not configured the UPI ID'
         });
+      }
 
-      x.amount=amount;
-      x.paymentStatus='Initiated';
-      x.paymentMode='UPI';
+      x.amount = amount;
 
-      x.paymentReference=
-        x.paymentReference||
-        id('UPI');
+      x.paymentStatus =
+        'Initiated';
 
-      x.updatedAt=
+      x.paymentMode =
+        'UPI';
+
+      x.paymentReference =
+        x.paymentReference ||
+        makeId('UPI');
+
+      x.updatedAt =
         new Date().toISOString();
 
       save(db);
 
-      const upi=
-        `upi://pay?pa=${
-          encodeURIComponent(
-            db.settings.upiId
-          )
-        }&pn=${
-          encodeURIComponent(
-            db.settings.payeeName
-          )
-        }&am=${
-          amount.toFixed(2)
-        }&cu=INR&tn=${
-          encodeURIComponent(
-            'CropSync '+x.id
-          )
-        }`;
+      const upi =
+        'upi://pay?pa=' +
+        encodeURIComponent(
+          db.settings.upiId
+        ) +
+        '&pn=' +
+        encodeURIComponent(
+          db.settings.payeeName
+        ) +
+        '&am=' +
+        amount.toFixed(2) +
+        '&cu=INR&tn=' +
+        encodeURIComponent(
+          'CropSync ' + x.id
+        );
 
-      return json(res,200,{
-        booking:x,
-        upiUrl:upi
+      return json(res, 200, {
+        booking: x,
+        upiUrl: upi
       });
     }
 
-    if(
-      req.method==='POST'&&
-      p==='/api/admin/settings'
-    ){
+    /* ==================== ADMIN SETTINGS ==================== */
 
-      if(!admin(req,res))return;
+    if (
+      req.method === 'POST' &&
+      p === '/api/admin/settings'
+    ) {
+      if (!admin(req, res)) {
+        return;
+      }
 
-      const b=await body(req);
+      const b = await body(req);
 
-      if(
-        !b.upiId||
+      if (
+        !b.upiId ||
         !b.upiId.includes('@')
-      )
-        return json(res,400,{
+      ) {
+        return json(res, 400, {
           error:
             'Enter a valid UPI ID'
         });
+      }
 
-      db.settings.upiId=
+      db.settings.upiId =
         b.upiId.trim();
 
-      db.settings.payeeName=
+      db.settings.payeeName =
         (
-          b.payeeName||
+          b.payeeName ||
           'CropSync'
         ).trim();
 
@@ -1184,57 +1463,64 @@ async function route(req,res){
         'UPI payment settings updated'
       );
 
-      return json(res,200,{
-        ok:true
+      return json(res, 200, {
+        ok: true
       });
     }
 
-    if(
-      req.method==='POST'&&
-      p==='/api/admin/booking/amount'
-    ){
+    /* ==================== BOOKING AMOUNT ==================== */
 
-      if(!admin(req,res))return;
+    if (
+      req.method === 'POST' &&
+      p === '/api/admin/booking/amount'
+    ) {
+      if (!admin(req, res)) {
+        return;
+      }
 
-      const b=await body(req);
+      const b = await body(req);
 
-      const x=db.bookings.find(
-        x=>x.id===b.id
-      );
+      const x =
+        db.bookings.find(
+          x => x.id === b.id
+        );
 
-      if(
-        !x||
-        !(Number(b.amount)>0)
-      )
-        return json(res,400,{
+      if (
+        !x ||
+        !(Number(b.amount) > 0)
+      ) {
+        return json(res, 400, {
           error:
             'Invalid booking or amount'
         });
+      }
 
-      x.amount=
+      x.amount =
         Number(b.amount);
 
-      x.updatedAt=
+      x.updatedAt =
         new Date().toISOString();
 
       save(db);
 
       audit(
         'PAYABLE_AMOUNT',
-        `${x.id} amount updated`
+        x.id +
+          ' amount updated'
       );
 
-      return json(res,200,{
-        booking:x
+      return json(res, 200, {
+        booking: x
       });
     }
 
-    if(
-      req.method==='GET'&&
-      p==='/api/tracking'
-    ){
+    /* ==================== TRACKING ==================== */
 
-      const phone=
+    if (
+      req.method === 'GET' &&
+      p === '/api/tracking'
+    ) {
+      const phone =
         new URL(
           req.url,
           'http://localhost'
@@ -1242,39 +1528,47 @@ async function route(req,res){
           .searchParams
           .get('phone');
 
-      const f=db.farmers.find(
-        x=>x.phone===phone
-      );
+      const f =
+        db.farmers.find(
+          x => x.phone === phone
+        );
 
-      if(!f)
-        return json(res,404,{
-          error:'Farmer not found'
+      if (!f) {
+        return json(res, 404, {
+          error:
+            'Farmer not found'
         });
+      }
 
-      return json(res,200,{
+      return json(res, 200, {
         bookings:
           db.bookings.filter(
-            b=>b.farmerId===f.id
+            b =>
+              b.farmerId === f.id
           )
       });
     }
 
-    if(
-      req.method==='GET'&&
-      p==='/api/health'
-    )
-      return json(res,200,{
-        ok:true
+    /* ==================== HEALTH ==================== */
+
+    if (
+      req.method === 'GET' &&
+      p === '/api/health'
+    ) {
+      return json(res, 200, {
+        ok: true
       });
+    }
 
-    if(req.method==='GET'){
+    /* ==================== STATIC FILES ==================== */
 
-      let file=
-        p==='/'?
-        '/index.html':
-        p;
+    if (req.method === 'GET') {
+      let file =
+        p === '/'
+          ? '/index.html'
+          : p;
 
-      file=
+      file =
         path
           .normalize(file)
           .replace(
@@ -1282,38 +1576,42 @@ async function route(req,res){
             ''
           );
 
-      const fp=
+      const fp =
         path.join(
           PUBLIC,
           file
         );
 
-      if(
-        !fp.startsWith(PUBLIC)||
-        !fs.existsSync(fp)||
+      if (
+        !fp.startsWith(PUBLIC) ||
+        !fs.existsSync(fp) ||
         fs.statSync(fp).isDirectory()
-      )
-        return json(res,404,{
-          error:'Not found'
+      ) {
+        return json(res, 404, {
+          error: 'Not found'
         });
+      }
 
-      const ext=
+      const ext =
         path.extname(fp);
 
-      const types={
+      const types = {
         '.html':
           'text/html; charset=utf-8',
+
         '.js':
           'text/javascript; charset=utf-8',
+
         '.css':
           'text/css; charset=utf-8',
+
         '.json':
           'application/json'
       };
 
-      res.writeHead(200,{
+      res.writeHead(200, {
         'Content-Type':
-          types[ext]||
+          types[ext] ||
           'application/octet-stream'
       });
 
@@ -1322,16 +1620,15 @@ async function route(req,res){
         .pipe(res);
     }
 
-    json(res,404,{
-      error:'Not found'
+    return json(res, 404, {
+      error: 'Not found'
     });
 
-  }catch(e){
-
+  } catch (e) {
     console.error(e);
 
-    json(res,500,{
-      error:'Server error'
+    return json(res, 500, {
+      error: 'Server error'
     });
   }
 }
@@ -1340,8 +1637,11 @@ http
   .createServer(route)
   .listen(
     PORT,
-    ()=>console.log(
-      `CropSync running at http://localhost:${PORT}`
-    )
+    function () {
+      console.log(
+        'CropSync running at http://localhost:' +
+          PORT
+      );
+    }
   );
 ```
