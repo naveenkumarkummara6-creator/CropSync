@@ -57,28 +57,28 @@
   },
   "slotCapacity": {
     "Mandapeta Procurement Centre": {
-      "maxFarmers": 5,
-      "maxQuintals": 20
+      "maxFarmers": 10,
+      "maxQuintals": 100
     },
     "Rajahmundry Procurement Centre": {
-      "maxFarmers": 5,
-      "maxQuintals": 20
+      "maxFarmers": 10,
+      "maxQuintals": 100
     },
     "Amalapuram Procurement Centre": {
-      "maxFarmers": 5,
-      "maxQuintals": 20
+      "maxFarmers": 10,
+      "maxQuintals": 100
     },
     "peddapuram Procurement Centre": {
-      "maxFarmers": 5,
-      "maxQuintals": 20
+      "maxFarmers": 10,
+      "maxQuintals": 100
     },
     "samalkota Procurement Centre": {
-      "maxFarmers": 5,
-      "maxQuintals": 20
+      "maxFarmers": 10,
+      "maxQuintals": 100
     },
     "kakinada Procurement Centre": {
-      "maxFarmers": 5,
-      "maxQuintals": 20
+      "maxFarmers": 10,
+      "maxQuintals": 100
     }
   },
   "slots": [
