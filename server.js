@@ -1,7 +1,7 @@
 const http=require('http'),fs=require('fs'),path=require('path'),crypto=require('crypto');
 const PORT=process.env.PORT||3000, ROOT=__dirname, PUBLIC=ROOT, DB=path.join(ROOT,'data.json');
 const sessions=new Map(), attempts=new Map(), otps=new Map();
-const seed={farmers:[],bookings:[],prices:[],centres:["Mandapeta Procurement Centre","Rajahmundry Procurement Centre","Amalapuram Procurement Centre"],crops:["Rice","Wheat","Maize","Groundnut","Cotton","Other"],audit:[],admin:null,settings:{upiId:"",payeeName:"CropSync"},slotCapacity:{"Mandapeta Procurement Centre":{maxFarmers:5,maxQuintals:20},"Rajahmundry Procurement Centre":{maxFarmers:5,maxQuintals:20},"Amalapuram Procurement Centre":{maxFarmers:5,maxQuintals:20}},slots:["09:00 - 09:30 AM","09:30 - 10:00 AM","10:00 - 10:30 AM","10:30 - 11:00 AM","11:00 - 11:30 AM","11:30 AM - 12:00 PM","12:00 - 12:30 PM","12:30 - 01:00 PM","02:00 - 02:30 PM","02:30 - 03:00 PM","03:00 - 03:30 PM","03:30 - 04:00 PM","04:00 - 04:30 PM","04:30 - 05:00 PM"]};
+const seed={farmers:[],bookings:[],prices:[],centres:["Mandapeta Procurement Centre","Rajahmundry Procurement Centre","Amalapuram Procurement Centre","Peddapuram Procurement Centre","Samarlakota Procurement Centre","Kakinada Procurement Centre"],crops:["Rice","Wheat","Maize","Groundnut","Cotton","Other"],audit:[],admin:null,settings:{upiId:"",payeeName:"CropSync"},slotCapacity:{"Mandapeta Procurement Centre":{maxFarmers:20,maxQuintals:200},"Rajahmundry Procurement Centre":{maxFarmers:20,maxQuintals:200},"Amalapuram Procurement Centre":{maxFarmers:20,maxQuintals:200},"Peddapuram Procurement Centre":{maxFarmers:20,maxQuintals:200},"Samarlakota Procurement Centre":{maxFarmers:20,maxQuintals:200},"Kakinada Procurement Centre":{maxFarmers:20,maxQuintals:200}},slots:["09:00 - 09:30 AM","09:30 - 10:00 AM","10:00 - 10:30 AM","10:30 - 11:00 AM","11:00 - 11:30 AM","11:30 AM - 12:00 PM","12:00 - 12:30 PM","12:30 - 01:00 PM","02:00 - 02:30 PM","02:30 - 03:00 PM","03:00 - 03:30 PM","03:30 - 04:00 PM","04:00 - 04:30 PM","04:30 - 05:00 PM"]};
 function load(){
  try{
   const d=JSON.parse(fs.readFileSync(DB,'utf8'));
@@ -36,8 +36,8 @@ function safeFarmer(f){return {id:f.id,name:f.name,phone:f.phone,village:f.villa
 function getCapacity(centre){
  const c=db.slotCapacity&&db.slotCapacity[centre];
  return {
-  maxFarmers:Number(c?.maxFarmers)||10,
-  maxQuintals:Number(c?.maxQuintals)||100
+  maxFarmers:Number(c?.maxFarmers)||20,
+  maxQuintals:Number(c?.maxQuintals)||200
  };
 }
 function slotUsage(date,centre,slot){
