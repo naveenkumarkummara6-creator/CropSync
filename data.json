@@ -47,11 +47,7 @@
       "details": "Initial administrator account created"
     }
   ],
-  "admin": {
-    "email": "naveenkumarkummara6@gmail.com",
-    "salt": "238cf0c63f0e67a2c653d16276562644",
-    "hash": "df1a364b8d686849b38c423cb1f50ba1e4726bbd1265c5596899d0bef54caa03605cf8a3c44a7772a8289fdc4446de6a7f52fbabda4b7eeb79c7ec79a2107bf0"
-  },
+  "admin": null,
   "settings": {
     "upiId": "",
     "payeeName": "CropSync"
