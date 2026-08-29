@@ -50,7 +50,7 @@
       "details": "Initial administrator account created"
     }
   ],
-  "admin": [],
+  "admin": null,
   "settings": {
     "upiId": "",
     "payeeName": "CropSync"
