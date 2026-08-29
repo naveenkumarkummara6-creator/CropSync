@@ -42,8 +42,8 @@ function safeFarmer(f){return {id:f.id,name:f.name,phone:f.phone,village:f.villa
 function getCapacity(centre){
  const c=db.slotCapacity&&db.slotCapacity[centre];
  return {
-  maxFarmers:Number(c?.maxFarmers)||5,
-  maxQuintals:Number(c?.maxQuintals)||20
+  maxFarmers:Number(c?.maxFarmers)||10,
+  maxQuintals:Number(c?.maxQuintals)||200
  };
 }
 function slotUsage(date,centre,slot){
