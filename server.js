@@ -3,6 +3,8 @@ const PORT=process.env.PORT||3000, ROOT=__dirname, PUBLIC=ROOT, DB=path.join(ROO
 const sessions=new Map(), attempts=new Map(), otpChallenges=new Map(), farmerSessions=new Map(), otpRequests=new Map(), otpCooldowns=new Map(), otpVerifyLimits=new Map();
 const OTP_PEPPER=process.env.OTP_PEPPER||'';
 const COOKIE_SECURE=process.env.NODE_ENV==='production'?'; Secure':'';
+// DEMO ONLY: any valid 10-digit number is verified without sending an SMS.
+const DEMO_OTP_MODE=true;
 const seed={farmers:[],bookings:[],prices:[],centres:["Mandapeta Procurement Centre","Rajahmundry Procurement Centre","Amalapuram Procurement Centre"],crops:["Rice","Wheat","Maize","Groundnut","Cotton","Other"],audit:[],admins:[],settings:{upiId:"",payeeName:"CropSync"},slotCapacity:{"Mandapeta Procurement Centre":{maxFarmers:5,maxQuintals:20},"Rajahmundry Procurement Centre":{maxFarmers:5,maxQuintals:20},"Amalapuram Procurement Centre":{maxFarmers:5,maxQuintals:20}},slots:["09:00 - 09:30 AM","09:30 - 10:00 AM","10:00 - 10:30 AM","10:30 - 11:00 AM","11:00 - 11:30 AM","11:30 AM - 12:00 PM","12:00 - 12:30 PM","12:30 - 01:00 PM","02:00 - 02:30 PM","02:30 - 03:00 PM","03:00 - 03:30 PM","03:30 - 04:00 PM","04:00 - 04:30 PM","04:30 - 05:00 PM"]};
 function load(){
  try{
@@ -44,6 +46,7 @@ function otpHash(challengeId,phone,code){return crypto.createHmac('sha256',OTP_P
 function sameHash(a,b){return Buffer.isBuffer(a)&&Buffer.isBuffer(b)&&a.length===b.length&&crypto.timingSafeEqual(a,b)}
 function maskPhone(phone){return `******${String(phone).slice(-4)}`}
 function clientIp(req){return String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'unknown').split(',')[0].trim()}
+function createFarmerSession(res,phone){const sid=crypto.randomBytes(32).toString('hex');farmerSessions.set(sid,{phone,registrationAuthorized:true,expires:Date.now()+15*60e3});res.setHeader('Set-Cookie',`cs_farmer_session=${sid}; HttpOnly${COOKIE_SECURE}; SameSite=Strict; Path=/; Max-Age=900`)}
 function twilioConfigured(){return Boolean(OTP_PEPPER&&process.env.TWILIO_ACCOUNT_SID&&process.env.TWILIO_AUTH_TOKEN&&process.env.TWILIO_FROM)}
 async function sendOtpSms(phone,code){
  if(!twilioConfigured())throw new Error('OTP SMS service is not configured');
@@ -100,6 +103,7 @@ async function route(req,res){
   if(req.method==='POST'&&p==='/api/otp'){
     const b=await body(req),phone=String(b.phone||''),ip=clientIp(req),key=`${ip}:${phone}`,now=Date.now();
     if(!/^\d{10}$/.test(phone))return json(res,400,{error:'Enter a valid 10-digit mobile number'});
+    if(DEMO_OTP_MODE){createFarmerSession(res,phone);audit('DEMO_PHONE_VERIFIED',`Demo verification for ${maskPhone(phone)}`);return json(res,200,{ok:true,verified:true,message:'Demo verification complete. No SMS was sent.'})}
     if(!twilioConfigured())return json(res,503,{error:'OTP SMS service is not configured. Contact the administrator.'});
     const cooldown=otpCooldowns.get(phone);if(cooldown&&cooldown>now)return json(res,429,{error:'Please wait 60 seconds before requesting another OTP.'});
     let r=otpRequests.get(key)||{count:0,reset:now+10*60e3};if(r.reset<now)r={count:0,reset:now+10*60e3};if(r.count>=3)return json(res,429,{error:'Too many OTP requests. Try again in a few minutes.'});
